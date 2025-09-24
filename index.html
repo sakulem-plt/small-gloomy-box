@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>騾｣骼悶Γ繧､繧ｭ繝ｳ繧ｰ繧ｹ繝斐Φ繧ｪ繝</title>
-  <meta name="theme-color" content="#000000">
-  <meta name="description" content="このページは開かないでください。">
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="このページは開かないでください。" />
   <style>
     html,body{margin:0;padding:0;background:#000;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
     .wrap{min-height:100svh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -16,65 +16,85 @@
     footer{opacity:.45;font-size:.8rem;padding:24px 0 32px}
     a{color:#e66}
     @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+    /* アンミュートボタン */
+    #unmute{
+      position:fixed;right:16px;bottom:16px;padding:12px 16px;border:0;border-radius:999px;
+      background:#e33;color:#fff;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;z-index:6
+    }
+    /* 透かし（任意） */
+    #wm{position:fixed;right:12px;bottom:10px;color:#fff;opacity:.4;font-size:.8rem;z-index:5;pointer-events:none}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="bar"></div>
-    <h1><!--{{PAGE_TITLE}}--></h1>
-    <video id="v" playsinline autoplay muted controls preload="metadata" poster="" aria-label="do not open">
-      <button id="unmute"
-  style="position:fixed;inset:auto 16px 16px auto;padding:12px 16px;border:0;border-radius:999px;
-         background:#e33;color:#fff;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer">
-  🔊 タップで音をON
-</button>
+    <h1><!-- PAGE_TITLE --></h1>
 
-<script>
-  const v = document.getElementById('v');
-  const btn = document.getElementById('unmute');
-
-  // 初回はミュート自動再生（ポリシーに従う）
-  (async () => {
-    try { await v.play(); } catch(e) { /* 端末によっては失敗するので無視 */ }
-  })();
-
-  // 以前に許可済みなら自動で音ON（Chrome等の一部で有効）
-  if (localStorage.getItem('allowSound') === '1') {
-    // ユーザー操作が要る環境では無視されるので、失敗してもOK
-    v.muted = false;
-  }
-
-  // 初回タップで確実に音ON（全ブラウザ対応）
-  const enableSound = async () => {
-    try {
-      v.muted = false;
-      // iOS対策：一瞬再生し直す
-      await v.play();
-      localStorage.setItem('allowSound','1'); // 次回以降のヒント
-      btn.style.display = 'none';
-    } catch(e) {
-      // それでもダメならボタンを残す
-      console.warn('unmute failed:', e);
-    }
-  };
-  btn.addEventListener('click', enableSound);
-  // 画面のどこタップでもOKにしたいなら↓を有効化：
-  // window.addEventListener('touchend', enableSound, { once:true });
-  // window.addEventListener('click', enableSound, { once:true });
-
-  // 再びミュートに戻したい時の例（任意UIで）
-  // v.addEventListener('volumechange', () => { if (v.muted) localStorage.removeItem('allowSound'); });
-</script>
-
-      <source src="./Chain_making_spinoff.mp4?v=3" type="video/mp4">
+    <!-- ダウンロード抑止オプション付き video -->
+    <video id="v"
+      playsinline autoplay muted controls preload="metadata" poster=""
+      controlsList="nodownload noplaybackrate"
+      disablePictureInPicture
+      oncontextmenu="return false"
+      aria-label="do not open">
+      <source src="./Chain_making_spinoff.mp4?v=5" type="video/mp4" />
       お使いのブラウザは video タグに対応していません。
     </video>
-    <div class="hint">閾ｪ蟾ｱ雋ｬ莉ｻ縺ｧ縺秘夢隕ｧ縺上□縺輔＞</div>
-    <footer>© <span id="y"></span>last-signal</footer>
+
+    <div class="hint">閾ｪ蟾ｱ雋ｬ莉ｻ縺ｧ縺秘夢隕ｧ縺上□縺輔</div>
+    <footer>© <span id="y"></span> last-signal</footer>
   </div>
+
+  <!-- 右下のアンミュートボタン -->
+  <button id="unmute">🔊 タップで音をON</button>
+  <!-- 透かし（任意） -->
+  <div id="wm">© last-signal · small-gloomy-box.ignorelist.com</div>
+
+  <!-- 保存/長押しメニュー抑止用のオーバーレイ（動画範囲だけ反応） -->
+  <div id="overlay" style="position:fixed;inset:0;z-index:4;background:transparent"></div>
+
   <script>
-    (async () => { const v=document.getElementById('v'); try{await v.play()}catch(e){v.muted=true} })();
+    const v = document.getElementById('v');
+    const btn = document.getElementById('unmute');
+    const overlay = document.getElementById('overlay');
+
+    // 年号
     document.getElementById('y').textContent = new Date().getFullYear();
+
+    // 初回はミュート自動再生（失敗しても無視）
+    (async () => { try { await v.play(); } catch(e) {} })();
+
+    // 以前に許可済みならミュート解除を試みる（環境により無視されることあり）
+    if (localStorage.getItem('allowSound') === '1') v.muted = false;
+
+    // ワンタップで確実に音ON
+    const enableSound = async () => {
+      try {
+        v.muted = false;
+        await v.play();
+        localStorage.setItem('allowSound','1');
+        btn.style.display = 'none';
+      } catch(e) { console.warn('unmute failed:', e); }
+    };
+    btn.addEventListener('click', enableSound);
+
+    // 保存/長押し系の軽い抑止（完全防止ではありません）
+    const block = (e) => e.preventDefault();
+    ['contextmenu','dragstart','selectstart','touchstart','touchend'].forEach(ev =>
+      overlay.addEventListener(ev, block, {passive:false})
+    );
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey||e.metaKey) && ['s','p','S','P'].includes(e.key)) e.preventDefault();
+    });
+
+    // オーバーレイは動画領域だけに効くようクリップ
+    const clipToVideo = () => {
+      const r = v.getBoundingClientRect();
+      overlay.style.clipPath =
+        `polygon(${r.left}px ${r.top}px, ${r.right}px ${r.top}px, ${r.right}px ${r.bottom}px, ${r.left}px ${r.bottom}px)`;
+    };
+    clipToVideo();
+    window.addEventListener('resize', clipToVideo);
   </script>
 </body>
 </html>
