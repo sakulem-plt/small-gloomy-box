@@ -23,6 +23,49 @@
     <div class="bar"></div>
     <h1><!--{{PAGE_TITLE}}--></h1>
     <video id="v" playsinline autoplay muted controls preload="metadata" poster="" aria-label="do not open">
+      <button id="unmute"
+  style="position:fixed;inset:auto 16px 16px auto;padding:12px 16px;border:0;border-radius:999px;
+         background:#e33;color:#fff;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer">
+  🔊 タップで音をON
+</button>
+
+<script>
+  const v = document.getElementById('v');
+  const btn = document.getElementById('unmute');
+
+  // 初回はミュート自動再生（ポリシーに従う）
+  (async () => {
+    try { await v.play(); } catch(e) { /* 端末によっては失敗するので無視 */ }
+  })();
+
+  // 以前に許可済みなら自動で音ON（Chrome等の一部で有効）
+  if (localStorage.getItem('allowSound') === '1') {
+    // ユーザー操作が要る環境では無視されるので、失敗してもOK
+    v.muted = false;
+  }
+
+  // 初回タップで確実に音ON（全ブラウザ対応）
+  const enableSound = async () => {
+    try {
+      v.muted = false;
+      // iOS対策：一瞬再生し直す
+      await v.play();
+      localStorage.setItem('allowSound','1'); // 次回以降のヒント
+      btn.style.display = 'none';
+    } catch(e) {
+      // それでもダメならボタンを残す
+      console.warn('unmute failed:', e);
+    }
+  };
+  btn.addEventListener('click', enableSound);
+  // 画面のどこタップでもOKにしたいなら↓を有効化：
+  // window.addEventListener('touchend', enableSound, { once:true });
+  // window.addEventListener('click', enableSound, { once:true });
+
+  // 再びミュートに戻したい時の例（任意UIで）
+  // v.addEventListener('volumechange', () => { if (v.muted) localStorage.removeItem('allowSound'); });
+</script>
+
       <source src="./Chain_making_spinoff.mp4?v=3" type="video/mp4">
       お使いのブラウザは video タグに対応していません。
     </video>
