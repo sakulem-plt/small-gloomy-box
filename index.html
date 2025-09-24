@@ -16,11 +16,6 @@
     footer{opacity:.45;font-size:.8rem;padding:24px 0 32px}
     a{color:#e66}
     @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
-    /* アンミュートボタン */
-    #unmute{
-      position:fixed;right:16px;bottom:16px;padding:12px 16px;border:0;border-radius:999px;
-      background:#e33;color:#fff;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;z-index:6
-    }
     /* 透かし（任意） */
     #wm{position:fixed;right:12px;bottom:10px;color:#fff;opacity:.4;font-size:.8rem;z-index:5;pointer-events:none}
   </style>
@@ -37,7 +32,7 @@
       disablePictureInPicture
       oncontextmenu="return false"
       aria-label="do not open">
-      <source src="./Chain_making_spinoff.mp4?v=5" type="video/mp4" />
+      <source src="./Chain_making_spinoff.mp4?v=6" type="video/mp4" />
       お使いのブラウザは video タグに対応していません。
     </video>
 
@@ -45,8 +40,6 @@
     <footer>© <span id="y"></span> last-signal</footer>
   </div>
 
-  <!-- 右下のアンミュートボタン -->
-  <button id="unmute">🔊 タップで音をON</button>
   <!-- 透かし（任意） -->
   <div id="wm">© last-signal · small-gloomy-box.ignorelist.com</div>
 
@@ -55,7 +48,6 @@
 
   <script>
     const v = document.getElementById('v');
-    const btn = document.getElementById('unmute');
     const overlay = document.getElementById('overlay');
 
     // 年号
@@ -67,25 +59,29 @@
     // 以前に許可済みならミュート解除を試みる（環境により無視されることあり）
     if (localStorage.getItem('allowSound') === '1') v.muted = false;
 
-    // ワンタップで確実に音ON
+    // 画面の最初のユーザー操作で音ON（ボタンなし）
     const enableSound = async () => {
       try {
         v.muted = false;
         await v.play();
         localStorage.setItem('allowSound','1');
-        btn.style.display = 'none';
-      } catch(e) { console.warn('unmute failed:', e); }
+      } catch(e) {}
+      // 保存系抑止のオーバーレイは以後邪魔しないよう無効化
+      overlay.style.display = 'none';
+      window.removeEventListener('pointerup', enableSound, true);
+      window.removeEventListener('keydown', keyEnable, true);
     };
-    btn.addEventListener('click', enableSound);
+    const keyEnable = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') enableSound();
+    };
+    window.addEventListener('pointerup', enableSound, true); // どこタップでもOK
+    window.addEventListener('keydown', keyEnable, true);
 
     // 保存/長押し系の軽い抑止（完全防止ではありません）
     const block = (e) => e.preventDefault();
     ['contextmenu','dragstart','selectstart','touchstart','touchend'].forEach(ev =>
       overlay.addEventListener(ev, block, {passive:false})
     );
-    window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey||e.metaKey) && ['s','p','S','P'].includes(e.key)) e.preventDefault();
-    });
 
     // オーバーレイは動画領域だけに効くようクリップ
     const clipToVideo = () => {
@@ -98,3 +94,4 @@
   </script>
 </body>
 </html>
+
